@@ -1,6 +1,5 @@
 "use client";
 
-import { SearchOutlined } from "@ant-design/icons";
 import {
   Button,
   Checkbox,
@@ -18,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getPostList } from "@/app/_queryOptions/post";
 import useStore from "@/app/_hooks/useStore";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   useKakaoLoader,
   Map,
@@ -31,7 +31,7 @@ const isKoreanAddressRegex = (value: string) =>
     value
   );
 
-const isFloat = (num: number) => Number.isFinite(num) && num % 1 !== 0;
+const isFloat = (number: number) => Number.isFinite(number) && number % 1 !== 0;
 
 const isLatitude = (value: string | number) => {
   const number = Number(value);
@@ -43,16 +43,16 @@ const isLongitude = (value: string | number) => {
   return isFloat(number) && number >= 124 && number <= 132;
 };
 
+interface Marker {
+  address: string;
+  latitude: string;
+  longitude: string;
+}
+
 export default function View() {
   useKakaoLoader({ appkey: "7c0a4bba1131d1334ee3dc75b1cc374f" });
   const { push } = useRouter();
-  const [markerList, setMarkerList] = useState<
-    {
-      address: string;
-      latitude: number;
-      longitude: number;
-    }[]
-  >([]);
+  const [markerList, setMarkerList] = useState<Marker[]>([]);
   const [api, contextHolder] = notification.useNotification();
 
   const { position, setPosition, setTitleTransitionRect } = useStore();
@@ -73,50 +73,12 @@ export default function View() {
   const { data: postList, isLoading } = useQuery(getPostList(keyword));
 
   useEffect(() => {
-    const { data } = papaparse.parse(
-      `연번,행정동,주소,위도,경도,데이터기준일자
-      1,신대방1동,서울특별시 동작구 신대방길 59,37.4885436800,126.9094842000,2024-12-12
-      2,신대방1동,서울특별시 동작구 신대방길 80,37.4893758400,126.9098258000,2024-12-12
-    3,신대방1동,서울특별시 동작구 신대방1길 24,37.4867591500,126.9103197000,2024-12-12
-`,
-      {
-        header: true,
-        transform(value) {
-          if (isKoreanAddressRegex(value)) return value;
-          if (isLatitude(value)) return Number(value);
-          if (isLongitude(value)) return Number(value);
-          return null;
-        },
-        complete({ data }) {
-          const res = data.map((item) => {
-            return Object.values(item).forEach((value) => {
-              const item2 = {};
-
-              if (isKoreanAddressRegex(value)) item2["address"] = value;
-              if (isLatitude(value)) item2["latitude"] = Number(value);
-              if (isLongitude(value)) item2["longitude"] = Number(value);
-
-              console.log(item2);
-
-              return item2;
-            });
-          });
-
-          console.log(res);
-        },
-      }
-    );
-    setMarkerList([]);
-
     if (!window.navigator.geolocation)
       return api.error({ message: "Geolocation이 지원되지 않습니다" });
 
     window.navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        setPosition({
-          lat: coords.latitude,
-          lng: coords.longitude,
-        });
+        setPosition({ lat: coords.latitude, lng: coords.longitude });
       },
       (error) => {
         api.error({
@@ -128,6 +90,37 @@ export default function View() {
     );
   }, []);
 
+  useEffect(() => {
+    const { data } = papaparse.parse<Marker>(
+      `연번,행정동,주소,위도,경도,데이터기준일자
+        1,신대방1동,서울특별시 동작구 신대방길 59,37.4885436800,126.9094842000,2024-12-12
+        2,신대방1동,서울특별시 동작구 신대방길 80,37.4893758400,126.9098258000,2024-12-12
+        3,신대방1동,서울특별시 동작구 신대방1길 24,37.4867591500,126.9103197000,2024-12-12`,
+      {
+        header: true,
+        transform: (value) => {
+          if (isKoreanAddressRegex(value)) return value;
+          if (isLatitude(value)) return value;
+          if (isLongitude(value)) return value;
+          return null;
+        },
+      }
+    );
+
+    setMarkerList(
+      data.map((row) => {
+        const marker: Marker = { address: "", latitude: "", longitude: "" };
+        Object.entries(row).forEach(([_, value]) => {
+          if (value === null) return;
+          if (isKoreanAddressRegex(value)) marker.address = value;
+          if (isLatitude(value)) marker.latitude = value;
+          if (isLongitude(value)) marker.longitude = value;
+        });
+        return marker;
+      })
+    );
+  }, []);
+
   return (
     <Flex>
       <motion.div
@@ -135,36 +128,24 @@ export default function View() {
         animate={{ opacity: 1 }}
         className="basis-3/4 relative"
       >
-        <Flex
-          vertical
-          gap={10}
-          className="bg-white w-[600px] z-10 absolute top-6 left-[25%] rounded-xl p-4 shadow-lg"
-        >
-          <Input
-            autoFocus
-            className="w-full"
-            addonBefore={<SearchOutlined />}
-            placeholder="검색"
-            onChange={onSearchChange}
-            size="large"
-          />
-          <Flex gap={10}>
-            <Checkbox>의류</Checkbox>
-            <Checkbox>폐건전지</Checkbox>
-            <Checkbox>재활용품</Checkbox>
-          </Flex>
-        </Flex>
-        <Map className="w-full h-full" center={position} level={3}>
+        <Map className="w-full h-full" center={position} level={3} maxLevel={3}>
+          <MapMarker position={position} />
           {markerList.map(({ address, latitude, longitude }) => (
             <MapMarker
-              key={latitude + longitude}
-              position={{
-                lat: latitude,
-                lng: longitude,
+              key={address}
+              onMouseOver={() => alert(address)}
+              image={{
+                src: "/trash.svg",
+                size: {
+                  width: 20,
+                  height: 20,
+                },
               }}
-            >
-              {address}
-            </MapMarker>
+              position={{
+                lat: Number(latitude),
+                lng: Number(longitude),
+              }}
+            />
           ))}
         </Map>
         <Flex
@@ -175,8 +156,50 @@ export default function View() {
           <Button type="primary">현재위치로</Button>
         </Flex>
       </motion.div>
-      <Flex className="basis-1/4 h-screen overflow-y-auto">
+      <Flex vertical className="basis-1/4 h-screen overflow-y-auto">
         {contextHolder}
+        <Flex vertical gap={10} className="bg-white w-full sticky top-0 z-10">
+          <Input
+            autoFocus
+            className="w-full"
+            placeholder="검색"
+            onChange={onSearchChange}
+            size="large"
+          />
+          <Flex justify="space-around" gap={10}>
+            <Checkbox className="flex">
+              <Image
+                className="mx-auto my-0"
+                alt="의류"
+                width={20}
+                height={20}
+                src="/trash.svg"
+              />
+              의류
+            </Checkbox>
+
+            <Checkbox className="flex">
+              <Image
+                className="mx-auto my-0"
+                alt="의류"
+                width={20}
+                height={20}
+                src="/battery.svg"
+              />
+              폐건전지
+            </Checkbox>
+            <Checkbox>
+              <Image
+                className="mx-auto my-0"
+                alt="의류"
+                width={20}
+                height={20}
+                src="/recycle.svg"
+              />
+              재활용품
+            </Checkbox>
+          </Flex>
+        </Flex>
         <List
           loading={isLoading}
           dataSource={postList}

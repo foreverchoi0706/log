@@ -1,0 +1,37 @@
+<svg
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* 건전지 본체 */}
+    <rect
+      x="6"
+      y="8"
+      width="12"
+      height="8"
+      rx="1"
+      fill="#48BB78"
+      stroke="#2F855A"
+      strokeWidth="1.5"
+    />
+    
+    {/* 건전지 양극 */}
+    <rect
+      x="18"
+      y="10"
+      width="2"
+      height="4"
+      rx="0.5"
+      fill="#2F855A"
+    />
+    
+    {/* + 기호 */}
+    <path
+      d="M11 11H13M12 10V12"
+      stroke="#2F855A"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
