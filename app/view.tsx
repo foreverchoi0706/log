@@ -11,7 +11,7 @@ import {
 } from "antd";
 import useEventCallback from "@/app/_hooks/useEventCallback";
 import { useEffect, useState, type ChangeEvent } from "react";
-import { debounceTime, distinctUntilChanged, map } from "rxjs";
+import { debounceTime, distinctUntilChanged, map as rxMap } from "rxjs";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getPostList } from "@/app/_queryOptions/post";
@@ -21,27 +21,16 @@ import Image from "next/image";
 import {
   useKakaoLoader,
   Map,
+  Roadview,
   MapMarker,
-  _MapProps,
+  type RoadViewProps,
 } from "react-kakao-maps-sdk";
 import papaparse from "papaparse";
-
-const isKoreanAddressRegex = (value: string) =>
-  /(서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주)\s*(특별시|광역시|도)?\s*[^\d\s]{1,20}(시|군|구)\s*[^\d\s]{1,20}(동|읍|면|리)?/.test(
-    value
-  );
-
-const isFloat = (number: number) => Number.isFinite(number) && number % 1 !== 0;
-
-const isLatitude = (value: string | number) => {
-  const number = Number(value);
-  return isFloat(number) && number >= 33 && number <= 38;
-};
-
-const isLongitude = (value: string | number) => {
-  const number = Number(value);
-  return isFloat(number) && number >= 124 && number <= 132;
-};
+import {
+  isKoreanAddressRegex,
+  isLatitude,
+  isLongitude,
+} from "@/app/_libs/utils";
 
 interface Marker {
   address: string;
@@ -55,7 +44,8 @@ export default function View() {
   const [markerList, setMarkerList] = useState<Marker[]>([]);
   const [api, contextHolder] = notification.useNotification();
 
-  const { position, setPosition, setTitleTransitionRect } = useStore();
+  const { map, setMap, setTitleTransitionRect } = useStore();
+  const [roadview, setRoadview] = useState<RoadViewProps | null>(null);
 
   const [onSearchChange, keyword] = useEventCallback<
     ChangeEvent<HTMLInputElement>,
@@ -63,31 +53,52 @@ export default function View() {
   >(
     ($event) =>
       $event.pipe(
-        map(({ target }) => target.value),
+        rxMap(({ target }) => target.value),
         distinctUntilChanged(),
         debounceTime(500)
       ),
     ""
   );
 
-  const { data: postList, isLoading } = useQuery(getPostList(keyword));
-
-  useEffect(() => {
+  const setGeolocationCoordinates = (isPanto: boolean = false) => {
     if (!window.navigator.geolocation)
       return api.error({ message: "Geolocation이 지원되지 않습니다" });
 
     window.navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        setPosition({ lat: coords.latitude, lng: coords.longitude });
+        setMap({
+          center: { lat: coords.latitude, lng: coords.longitude },
+          isPanto,
+        });
       },
-      (error) => {
+      (error) =>
         api.error({
           message:
             "위치 조회에 실패했습니다 브라우저 설정 내 위치 허용을 확인해주세요",
           description: error.message,
-        });
-      }
+        })
     );
+  };
+
+  const { data: postList, isLoading } = useQuery(getPostList(keyword));
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    window.document.addEventListener(
+      "keydown",
+      ({ key }) => {
+        if (key === "Escape") setRoadview(null);
+      },
+      { signal: abortController.signal }
+    );
+
+    return () => {
+      abortController.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    setGeolocationCoordinates();
   }, []);
 
   useEffect(() => {
@@ -128,17 +139,35 @@ export default function View() {
         animate={{ opacity: 1 }}
         className="basis-3/4 relative"
       >
-        <Map className="w-full h-full" center={position} level={3} maxLevel={3}>
-          <MapMarker position={position} />
+        {roadview && (
+          <motion.div
+            className="w-full h-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            <Roadview className="w-full h-full" {...roadview} />
+          </motion.div>
+        )}
+        <Map {...map} className="w-full h-full">
+          <MapMarker position={map.center} />
           {markerList.map(({ address, latitude, longitude }) => (
             <MapMarker
               key={address}
-              onMouseOver={() => alert(address)}
+              onClick={() => {
+                setRoadview({
+                  position: {
+                    lat: Number(latitude),
+                    lng: Number(longitude),
+                    radius: 1000,
+                  },
+                });
+              }}
+              // onMouseOver={() => alert(address)}
               image={{
                 src: "/trash.svg",
                 size: {
-                  width: 20,
-                  height: 20,
+                  width: 30,
+                  height: 30,
                 },
               }}
               position={{
@@ -153,7 +182,12 @@ export default function View() {
           gap={10}
           className="bg-white z-10 absolute bottom-6 right-6 rounded-xl p-4 shadow-lg"
         >
-          <Button type="primary">현재위치로</Button>
+          <Button
+            type="primary"
+            onClick={() => setGeolocationCoordinates(true)}
+          >
+            현재위치로{JSON.stringify(map)}
+          </Button>
         </Flex>
       </motion.div>
       <Flex vertical className="basis-1/4 h-screen overflow-y-auto">
@@ -177,7 +211,6 @@ export default function View() {
               />
               의류
             </Checkbox>
-
             <Checkbox className="flex">
               <Image
                 className="mx-auto my-0"
