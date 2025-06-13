@@ -31,12 +31,7 @@ import {
   isLatitude,
   isLongitude,
 } from "@/app/_libs/utils";
-
-interface Marker {
-  address: string;
-  latitude: string;
-  longitude: string;
-}
+import { Marker } from "@/app/_types";
 
 export default function View() {
   useKakaoLoader({ appkey: "7c0a4bba1131d1334ee3dc75b1cc374f" });
