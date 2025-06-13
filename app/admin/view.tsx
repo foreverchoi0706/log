@@ -18,8 +18,8 @@ export default function View() {
   const onChange = ({ file }: UploadChangeParam<UploadFile>) => {
     if (file.originFileObj === undefined) return;
 
-    const reader = new FileReader();
-    reader.onload = ({ target }) => {
+    const fileReader = new FileReader();
+    fileReader.onload = ({ target }) => {
       const text = target?.result as string;
       const { data } = papaparse.parse<Marker>(text, {
         header: true,
@@ -44,7 +44,7 @@ export default function View() {
       setData(processedData);
     };
 
-    reader.readAsText(file.originFileObj, "EUC-KR");
+    fileReader.readAsText(file.originFileObj, "EUC-KR");
   };
 
   return (
