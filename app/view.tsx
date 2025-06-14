@@ -25,16 +25,9 @@ import {
   MapMarker,
   type RoadViewProps,
 } from "react-kakao-maps-sdk";
-import papaparse from "papaparse";
-import {
-  isKoreanAddressRegex,
-  isLatitude,
-  isLongitude,
-} from "@/app/_libs/utils";
 import { Marker } from "@/app/_types";
 
-export default function View() {
-  useKakaoLoader({ appkey: "7c0a4bba1131d1334ee3dc75b1cc374f" });
+ function View() {
   const { push } = useRouter();
   const [markerList, setMarkerList] = useState<Marker[]>([]);
   const [api, contextHolder] = notification.useNotification();
@@ -93,39 +86,21 @@ export default function View() {
   }, []);
 
   useEffect(() => {
+    // if (!map) return;
+
+    // const ps = new window.kakao.maps.services.Places();
+    // ps.keywordSearch("치킨", (data, status, pagination) => {
+    //   if (status === window.kakao.maps.services.Status.OK) {
+    //     console.log(data);
+    //   }
+    // });
+  }, [map]);
+
+  useEffect(() => {
     setGeolocationCoordinates();
   }, []);
 
-  useEffect(() => {
-    const { data } = papaparse.parse<Marker>(
-      `연번,행정동,주소,위도,경도,데이터기준일자
-        1,신대방1동,서울특별시 동작구 신대방길 59,37.4885436800,126.9094842000,2024-12-12
-        2,신대방1동,서울특별시 동작구 신대방길 80,37.4893758400,126.9098258000,2024-12-12
-        3,신대방1동,서울특별시 동작구 신대방1길 24,37.4867591500,126.9103197000,2024-12-12`,
-      {
-        header: true,
-        transform: (value) => {
-          if (isKoreanAddressRegex(value)) return value;
-          if (isLatitude(value)) return value;
-          if (isLongitude(value)) return value;
-          return null;
-        },
-      }
-    );
 
-    setMarkerList(
-      data.map((row) => {
-        const marker: Marker = { address: "", latitude: "", longitude: "" };
-        Object.entries(row).forEach(([_, value]) => {
-          if (value === null) return;
-          if (isKoreanAddressRegex(value)) marker.address = value;
-          if (isLatitude(value)) marker.latitude = value;
-          if (isLongitude(value)) marker.longitude = value;
-        });
-        return marker;
-      })
-    );
-  }, []);
 
   return (
     <Flex>
@@ -143,11 +118,14 @@ export default function View() {
             <Roadview className="w-full h-full" {...roadview} />
           </motion.div>
         )}
-        <Map {...map} className="w-full h-full">
+        <Map
+          {...map}
+          className="w-full h-full"
+        >
           <MapMarker position={map.center} />
           {markerList.map(({ address, latitude, longitude }) => (
             <MapMarker
-              key={address}
+              key={`marker-${address}-${latitude},${longitude}`}
               onClick={() => {
                 setRoadview({
                   position: {
@@ -185,9 +163,9 @@ export default function View() {
           </Button>
         </Flex>
       </motion.div>
-      <Flex vertical className="basis-1/4 h-screen overflow-y-auto">
+      <Flex vertical className="basis-1/4 h-screen">
         {contextHolder}
-        <Flex vertical gap={10} className="bg-white w-full sticky top-0 z-10">
+        <Flex vertical gap={10} >
           <Input
             autoFocus
             className="w-full"
@@ -229,6 +207,7 @@ export default function View() {
           </Flex>
         </Flex>
         <List
+          className="overflow-y-auto"
           loading={isLoading}
           dataSource={postList}
           renderItem={({ id, title, body }) => (
@@ -256,4 +235,11 @@ export default function View() {
       </Flex>
     </Flex>
   );
+}
+
+export default function ViewContainer() {
+  const [loading] = useKakaoLoader({ appkey: "7c0a4bba1131d1334ee3dc75b1cc374f" });
+
+  if (loading) return null;
+  return <View />;
 }

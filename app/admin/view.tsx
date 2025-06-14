@@ -8,7 +8,7 @@ import {
   isLatitude,
   isLongitude,
 } from "@/app/_libs/utils";
-import { Button, Divider, Flex, List, Upload, UploadFile } from "antd";
+import { Button, Flex, List, Typography, Upload, UploadFile } from "antd";
 import { UploadChangeParam } from "antd/es/upload";
 import { UploadOutlined } from "@ant-design/icons";
 
@@ -39,7 +39,7 @@ export default function View() {
           if (isLongitude(value)) marker.longitude = value;
         });
         return marker;
-      });
+      }).filter(({ address, latitude, longitude }) => address !== "" && latitude !== "" && longitude !== "");
 
       setData(processedData);
     };
@@ -48,23 +48,23 @@ export default function View() {
   };
 
   return (
-    <main className="max-w-[600px] mx-auto my-0 p-4">
-      <Flex gap={10} justify="space-between" align="center">
-        <Upload
-          listType="picture-card"
-          maxCount={1}
-          accept=".csv"
-          onChange={onChange}
-          iconRender={() => <UploadOutlined />}
-        >
-          <UploadOutlined />
-        </Upload>
-        <Button variant="filled" color="primary">
-          적용하기
-        </Button>
-      </Flex>
-      <Divider />
+    <main className="max-w-[800px] mx-auto my-0 p-4">
+      <Upload
+        listType="picture-card"
+        maxCount={1}
+        accept=".csv"
+        onChange={onChange}
+        iconRender={() => <UploadOutlined />}
+      >
+        <UploadOutlined />
+      </Upload>
       <List
+        header={<Flex justify="space-between" align="center">
+          <Typography.Text strong>{data.length}개의 마커가 있습니다.</Typography.Text>
+          <Button variant="filled" color="primary">
+            적용하기
+          </Button>
+        </Flex>}
         dataSource={data}
         renderItem={({ address, latitude, longitude }) => (
           <List.Item>
