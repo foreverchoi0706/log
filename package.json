@@ -3,16 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "dev": "next dev --turbo",
+		"build": "next build",
+		"start": "next start"
   },
   "dependencies": {
     "@ant-design/icons": "^5.6.1",
     "@ant-design/nextjs-registry": "^1.0.2",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
-    "@prisma/client": "^6.8.2",
     "@supabase/supabase-js": "^2.49.8",
     "@tanstack/react-query": "^5.77.1",
     "@uiw/react-md-editor": "^4.0.7",
@@ -32,7 +30,6 @@
     "@types/papaparse": "^5.3.16",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "prisma": "^6.8.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

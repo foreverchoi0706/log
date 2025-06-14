@@ -11,9 +11,15 @@ import {
 import { Button, Flex, List, Typography, Upload, UploadFile } from "antd";
 import { UploadChangeParam } from "antd/es/upload";
 import { UploadOutlined } from "@ant-design/icons";
+import { addMarkerList } from "@/app/_actions/api";
 
 export default function View() {
   const [data, setData] = useState<Marker[]>([]);
+
+
+  const onAddMarkerListClick = () => {
+    addMarkerList(data);
+  };
 
   const onChange = ({ file }: UploadChangeParam<UploadFile>) => {
     if (file.originFileObj === undefined) return;
@@ -60,9 +66,9 @@ export default function View() {
       </Upload>
       <List
         header={<Flex justify="space-between" align="center">
-          <Typography.Text strong>{data.length}개의 마커가 있습니다.</Typography.Text>
-          <Button variant="filled" color="primary">
-            적용하기
+          <Typography.Text strong>{data.length}개의 행이 있습니다.</Typography.Text>
+          <Button variant="filled" color="primary" onClick={onAddMarkerListClick}>
+            업로드
           </Button>
         </Flex>}
         dataSource={data}

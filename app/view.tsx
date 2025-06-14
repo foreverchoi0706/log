@@ -26,8 +26,9 @@ import {
   type RoadViewProps,
 } from "react-kakao-maps-sdk";
 import { Marker } from "@/app/_types";
+import { getMarkerList } from "@/app/_actions/api";
 
- function View() {
+function View() {
   const { push } = useRouter();
   const [markerList, setMarkerList] = useState<Marker[]>([]);
   const [api, contextHolder] = notification.useNotification();
@@ -68,7 +69,22 @@ import { Marker } from "@/app/_types";
     );
   };
 
+  const onSetRoadviewClick = (latitude: string, longitude: string) => {
+    setRoadview({
+      position: {
+        lat: Number(latitude),
+        lng: Number(longitude),
+        radius: 1000,
+      },
+    });
+  }
+
   const { data: postList, isLoading } = useQuery(getPostList(keyword));
+
+
+  useEffect(() => {
+    getMarkerList().then(setMarkerList);
+  }, []);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -86,6 +102,7 @@ import { Marker } from "@/app/_types";
   }, []);
 
   useEffect(() => {
+    getMarkerList().then(console.log);
     // if (!map) return;
 
     // const ps = new window.kakao.maps.services.Places();
@@ -126,16 +143,10 @@ import { Marker } from "@/app/_types";
           {markerList.map(({ address, latitude, longitude }) => (
             <MapMarker
               key={`marker-${address}-${latitude},${longitude}`}
-              onClick={() => {
-                setRoadview({
-                  position: {
-                    lat: Number(latitude),
-                    lng: Number(longitude),
-                    radius: 1000,
-                  },
-                });
+              onClick={() => onSetRoadviewClick(latitude, longitude)}
+              onMouseOver={() => {
+                console.log(address, latitude, longitude);
               }}
-              // onMouseOver={() => alert(address)}
               image={{
                 src: "/trash.svg",
                 size: {
